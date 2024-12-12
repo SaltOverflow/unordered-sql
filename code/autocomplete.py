@@ -9,23 +9,29 @@ Due to time constraints, we're doing a very limited set of suggestions,
 specifically targeting column autocomplete. This is to highlight the
 benefits of allowing FROM before SELECT
 """
+
 import my_ast as ast
 import my_token as tok
+
 
 class Autocomplete:
     def __init__(self, table_to_column: dict[str, list[str]]) -> None:
         self.table_to_column = table_to_column
-    
-    def suggest(self, text: str, statements: list[ast.Statement], cursor: int) -> list[str] | None:
+
+    def suggest(
+        self, text: str, statements: list[ast.Statement], cursor: int
+    ) -> list[str] | None:
         """Suggest autocomplete options at the point of the cursor"""
         for statement in statements:
-            if not(statement.start <= cursor <= statement.start + statement.length):
+            if not (statement.start <= cursor <= statement.start + statement.length):
                 continue
             tables_in_play = self.get_tables_and_aliases(text, statement)
             # print(f"{tables_in_play=}")
             for select in statement.selects:
                 for field in select.fields:
-                    suggestion = self.suggest_in_expression(text, cursor, field.expression, tables_in_play)
+                    suggestion = self.suggest_in_expression(
+                        text, cursor, field.expression, tables_in_play
+                    )
                     if suggestion is not None:
                         return suggestion
             for from_ in statement.froms:
@@ -34,14 +40,18 @@ class Autocomplete:
                     if suggestion is not None:
                         return suggestion
             for where in statement.wheres:
-                suggestion = self.suggest_in_expression(text, cursor, where.expression, tables_in_play)
+                suggestion = self.suggest_in_expression(
+                    text, cursor, where.expression, tables_in_play
+                )
                 if suggestion is not None:
                     return suggestion
         return None
 
-    def extract_name_from_token(self, text: str, token: tok.Token, cursor: int | None = None) -> str | None:
+    def extract_name_from_token(
+        self, text: str, token: tok.Token, cursor: int | None = None
+    ) -> str | None:
         """Helper to extract name from token
-        
+
         if cursor is None, we parse like normal
         if cursor is not None, only return what is before the cursor
         (if the cursor is not inside the token, return None)
@@ -51,17 +61,25 @@ class Autocomplete:
             if not (start <= cursor <= end):
                 return None
             end = cursor
-        if isinstance(token, tok.NameToken) and token.type == tok.NameTokenType.NON_KEYWORD:
+        if (
+            isinstance(token, tok.NameToken)
+            and token.type == tok.NameTokenType.NON_KEYWORD
+        ):
             name = text[start:end]
-        elif isinstance(token, tok.SpecialToken) and token.type == tok.SpecialTokenType.DOUBLE_QUOTE_STRING:
-            name = text[start+1:end]
+        elif (
+            isinstance(token, tok.SpecialToken)
+            and token.type == tok.SpecialTokenType.DOUBLE_QUOTE_STRING
+        ):
+            name = text[start + 1 : end]
             if name and name[-1] == '"':
                 name = name[:-1]
         else:
             return None
         return name
 
-    def get_tables_and_aliases(self, text: str, statement: ast.Statement) -> list[tuple[str, str | None]]:
+    def get_tables_and_aliases(
+        self, text: str, statement: ast.Statement
+    ) -> list[tuple[str, str | None]]:
         """Get list of tables and table aliases for the current statement"""
         ret: list[tuple[str, str | None]] = []
         for from_ in statement.froms:
@@ -78,9 +96,16 @@ class Autocomplete:
                 ret.append((name, alias))
         return ret
 
-    def suggest_in_expression(self, text: str, cursor: int, expression: ast.Expression, tables_in_play: list[tuple[str, str | None]], predot_name: str | None = None) -> list[str] | None:
+    def suggest_in_expression(
+        self,
+        text: str,
+        cursor: int,
+        expression: ast.Expression,
+        tables_in_play: list[tuple[str, str | None]],
+        predot_name: str | None = None,
+    ) -> list[str] | None:
         """Make suggestions for names in an expression
-        
+
         Note that we don't actually know if the cursor is in this expression,
         so we have to parse the entire expression. This can be refactored later
         text is to access the underlying strings (ast only holds text indexes)
@@ -120,20 +145,33 @@ class Autocomplete:
                         ret.append(column)
             return ret
         elif isinstance(expression, ast.ParenExpression):
-            return self.suggest_in_expression(text, cursor, expression.expr, tables_in_play)
+            return self.suggest_in_expression(
+                text, cursor, expression.expr, tables_in_play
+            )
         elif isinstance(expression, ast.BinaryExpression):
-            left = self.suggest_in_expression(text, cursor, expression.left, tables_in_play)
+            left = self.suggest_in_expression(
+                text, cursor, expression.left, tables_in_play
+            )
             if left is not None:
                 return left
             op = expression.operator
             predot_name: str | None = None
-            if isinstance(op, tok.PunctuationToken) and op.type == tok.PunctuationTokenType.DOT:
+            if (
+                isinstance(op, tok.PunctuationToken)
+                and op.type == tok.PunctuationTokenType.DOT
+            ):
                 if isinstance(expression.left, ast.ValueExpression):
-                    predot_name = self.extract_name_from_token(text, expression.left.token)
-            return self.suggest_in_expression(text, cursor, expression.right, tables_in_play, predot_name)
+                    predot_name = self.extract_name_from_token(
+                        text, expression.left.token
+                    )
+            return self.suggest_in_expression(
+                text, cursor, expression.right, tables_in_play, predot_name
+            )
         return None
 
-    def suggest_in_from(self, text: str, cursor: int, table_name: ast.Expression) -> list[str] | None:
+    def suggest_in_from(
+        self, text: str, cursor: int, table_name: ast.Expression
+    ) -> list[str] | None:
         """Make suggestions for a table name in the FROM clause"""
         # This is relatively simple because we don't have schema scope
         # (see how table_to_column isn't like schema -> table -> column)
@@ -151,8 +189,10 @@ class Autocomplete:
             return ret
         return None
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from parser import Parser
+
     # Partially handling unclosed strings and whatnot
     # If you have 2 identical froms, do you remove them? I assume you should,
     # but if you want to also handle aliasing you'd have to do type-checking
@@ -184,11 +224,11 @@ if __name__ == '__main__':
     from table select b as "hello"""
     statements = Parser(text).parse_all()
     table_to_column = {
-        'table': ['art', 'arm', 'ack', 'd', 'e', 'integer'],
-        'table2': ['integer', 'idea', 'insight'],
-        'toodles': ['meow', 'moo', 'artful'],
-        'sandwich': [],
-        'inspiration': ['another'],
+        "table": ["art", "arm", "ack", "d", "e", "integer"],
+        "table2": ["integer", "idea", "insight"],
+        "toodles": ["meow", "moo", "artful"],
+        "sandwich": [],
+        "inspiration": ["another"],
     }
     autocomplete = Autocomplete(table_to_column)
     # Below I've labeled some of my commentary on the tests with (limitation)
@@ -221,6 +261,6 @@ if __name__ == '__main__':
     # 445: which behaves the same as column lookup with the alias name
     for i in [52, 145, 150, 163, 192, 220, 296, 321, 393, 395, 407, 432, 445]:
         print(i)
-        print(repr(text[i-50:i]))
+        print(repr(text[i - 50 : i]))
         print(autocomplete.suggest(text, statements, i))
         print()

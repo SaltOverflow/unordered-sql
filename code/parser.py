@@ -10,8 +10,10 @@ from tokenizer import Tokenizer
 import my_ast as ast
 import my_token as tok
 
+
 class Parser:
     """Given a string, produces an AST"""
+
     def __init__(self, text: str, start_position: int = 0):
         self.tokenizer: Tokenizer = Tokenizer(text, start_position)
 
@@ -20,45 +22,61 @@ class Parser:
         ret: list[ast.Statement] = []
         while True:
             token = self.consume_newline_semicolons()
-            if isinstance(token, tok.SpecialToken) and token.type == tok.SpecialTokenType.END_OF_STRING:
+            if (
+                isinstance(token, tok.SpecialToken)
+                and token.type == tok.SpecialTokenType.END_OF_STRING
+            ):
                 break
             ret.append(self.parse_statement())
         return ret
-    
+
     class UnknownTokenException(Exception):
         """Signals an unknown token
-        
+
         This is helpful so we can handle unknown tokens in one place
         """
+
         pass
 
     def consume_newline_semicolons(self):
         """Consume \\n and ; in order to get to the start of a statement
-        
+
         Does not consume the returned token
         """
         token = self.tokenizer.peek()
-        while isinstance(token, tok.PunctuationToken) and (token.type == tok.PunctuationTokenType.NEWLINE or token.type == tok.PunctuationTokenType.SEMICOLON):
+        while isinstance(token, tok.PunctuationToken) and (
+            token.type == tok.PunctuationTokenType.NEWLINE
+            or token.type == tok.PunctuationTokenType.SEMICOLON
+        ):
             self.tokenizer.consume()
             token = self.tokenizer.peek()
         return token
 
     def get_next_standard_token(self, parent_statement: ast.Statement) -> tok.Token:
         """Handles comments and the single newlines
-        
+
         ie. if \\n is returned, caller knows that \\n\\n is ahead
         Does not consume the returned token
         """
         token = self.tokenizer.peek()
         while True:
-            if isinstance(token, tok.PunctuationToken) and token.type == tok.PunctuationTokenType.NEWLINE:
+            if (
+                isinstance(token, tok.PunctuationToken)
+                and token.type == tok.PunctuationTokenType.NEWLINE
+            ):
                 token2 = self.tokenizer.peek(2)
-                if isinstance(token2, tok.PunctuationToken) and token2.type == tok.PunctuationTokenType.NEWLINE:
+                if (
+                    isinstance(token2, tok.PunctuationToken)
+                    and token2.type == tok.PunctuationTokenType.NEWLINE
+                ):
                     break
                 else:
                     self.tokenizer.consume()
                     token = token2
-            if isinstance(token, tok.SpecialToken) and (token.type == tok.SpecialTokenType.SINGLE_LINE_COMMENT or token.type == tok.SpecialTokenType.MULTI_LINE_COMMENT):
+            if isinstance(token, tok.SpecialToken) and (
+                token.type == tok.SpecialTokenType.SINGLE_LINE_COMMENT
+                or token.type == tok.SpecialTokenType.MULTI_LINE_COMMENT
+            ):
                 self.tokenizer.consume()
                 parent_statement.comments.append(token)
                 token = self.tokenizer.peek()
@@ -68,7 +86,7 @@ class Parser:
 
     def parse_statement(self) -> ast.Statement:
         """Parse a statement, eg. `from table1 select a`
-        
+
         self.tokenizer should be at the start of a statement
         """
         token = self.tokenizer.peek()
@@ -91,13 +109,17 @@ class Parser:
                         raise self.UnknownTokenException()
                 elif isinstance(token, tok.PunctuationToken):
                     if token.type == tok.PunctuationTokenType.SEMICOLON:
-                        ret.length = self.tokenizer.end_idx_of_last_consumed_token - ret.start
+                        ret.length = (
+                            self.tokenizer.end_idx_of_last_consumed_token - ret.start
+                        )
                         self.tokenizer.consume()
                         break
                     elif token.type == tok.PunctuationTokenType.NEWLINE:
                         # If we see newline here, we know there are actually
                         # at least two newlines waiting to be consumed
-                        ret.length = self.tokenizer.end_idx_of_last_consumed_token - ret.start
+                        ret.length = (
+                            self.tokenizer.end_idx_of_last_consumed_token - ret.start
+                        )
                         self.tokenizer.consume()
                         self.tokenizer.consume()
                         break
@@ -105,7 +127,9 @@ class Parser:
                         raise self.UnknownTokenException()
                 elif isinstance(token, tok.SpecialToken):
                     if token.type == tok.SpecialTokenType.END_OF_STRING:
-                        ret.length = self.tokenizer.end_idx_of_last_consumed_token - ret.start
+                        ret.length = (
+                            self.tokenizer.end_idx_of_last_consumed_token - ret.start
+                        )
                         break
                     else:
                         raise self.UnknownTokenException()
@@ -115,9 +139,13 @@ class Parser:
                 self.tokenizer.consume()
                 token_is_known = False
                 if prev_token_is_known:
-                    ret.unknowns.append(ast.UnknownSequence(token.start, token.length, token))
+                    ret.unknowns.append(
+                        ast.UnknownSequence(token.start, token.length, token)
+                    )
                 else:
-                    ret.unknowns[-1].length = token.start + token.length - ret.unknowns[-1].start
+                    ret.unknowns[-1].length = (
+                        token.start + token.length - ret.unknowns[-1].start
+                    )
             prev_token_is_known = token_is_known
         return ret
 
@@ -130,7 +158,9 @@ class Parser:
         ret = ast.SelectClause()
         while True:
             # We don't allow commas here
-            expression = self.parse_expression(parent_statement, tok.comma_precedence - 1)
+            expression = self.parse_expression(
+                parent_statement, tok.comma_precedence - 1
+            )
             token = self.get_next_standard_token(parent_statement)
             if isinstance(token, tok.NameToken) and token.type == tok.NameTokenType.AS:
                 # Note that this does not throw error on `select a as, b`
@@ -139,8 +169,10 @@ class Parser:
             # Would be good to return diagnostic if 'tablename' used here
 
             if (
-                isinstance(token, tok.NameToken) and token.type == tok.NameTokenType.NON_KEYWORD or
-                isinstance(token, tok.SpecialToken) and token.type == tok.SpecialTokenType.DOUBLE_QUOTE_STRING
+                isinstance(token, tok.NameToken)
+                and token.type == tok.NameTokenType.NON_KEYWORD
+                or isinstance(token, tok.SpecialToken)
+                and token.type == tok.SpecialTokenType.DOUBLE_QUOTE_STRING
             ):
                 self.tokenizer.consume()
                 ret.fields.append(ast.SelectField(expression, token))
@@ -148,7 +180,10 @@ class Parser:
             else:
                 ret.fields.append(ast.SelectField(expression))
             # Consume a comma or break out of the loop
-            if isinstance(token, tok.PunctuationToken) and token.type == tok.PunctuationTokenType.COMMA:
+            if (
+                isinstance(token, tok.PunctuationToken)
+                and token.type == tok.PunctuationTokenType.COMMA
+            ):
                 self.tokenizer.consume()
             else:
                 break
@@ -165,7 +200,10 @@ class Parser:
         while True:
             # Only allow dot-separated here
             # This allows stuff like `(4 + 5)."hello"` but wtv
-            expression = self.parse_expression(parent_statement, tok.operator_to_precedence[tok.PunctuationTokenType.DOT])
+            expression = self.parse_expression(
+                parent_statement,
+                tok.operator_to_precedence[tok.PunctuationTokenType.DOT],
+            )
             # This part is pretty much identical to parse_select(), except it
             # uses FromField. They may diverge in the future, so leave for now
             token = self.get_next_standard_token(parent_statement)
@@ -174,8 +212,10 @@ class Parser:
                 self.tokenizer.consume()
                 token = self.get_next_standard_token(parent_statement)
             if (
-                isinstance(token, tok.NameToken) and token.type == tok.NameTokenType.NON_KEYWORD or
-                isinstance(token, tok.SpecialToken) and token.type == tok.SpecialTokenType.DOUBLE_QUOTE_STRING
+                isinstance(token, tok.NameToken)
+                and token.type == tok.NameTokenType.NON_KEYWORD
+                or isinstance(token, tok.SpecialToken)
+                and token.type == tok.SpecialTokenType.DOUBLE_QUOTE_STRING
             ):
                 self.tokenizer.consume()
                 ret.fields.append(ast.FromField(expression, token))
@@ -183,7 +223,10 @@ class Parser:
             else:
                 ret.fields.append(ast.FromField(expression))
             # Consume a comma or break out of the loop
-            if isinstance(token, tok.PunctuationToken) and token.type == tok.PunctuationTokenType.COMMA:
+            if (
+                isinstance(token, tok.PunctuationToken)
+                and token.type == tok.PunctuationTokenType.COMMA
+            ):
                 self.tokenizer.consume()
             else:
                 break
@@ -197,9 +240,11 @@ class Parser:
         expression = self.parse_expression(parent_statement, tok.comma_precedence - 1)
         return ast.WhereClause(expression)
 
-    def parse_expression(self, parent_statement: ast.Statement, expression_precedence: int) -> ast.Expression:
+    def parse_expression(
+        self, parent_statement: ast.Statement, expression_precedence: int
+    ) -> ast.Expression:
         """Parse expression, staying within the specified precedence bounds
-        
+
         parent_statement is for storing comments we come across.
         If a binary operator exceeds expression_precedence or has none,
         we stop parsing the expression.
@@ -210,19 +255,28 @@ class Parser:
 
         while True:
             binop = self.get_next_standard_token(parent_statement)
-            if not (isinstance(binop, tok.NameToken) or isinstance(binop, tok.PunctuationToken)):
+            if not (
+                isinstance(binop, tok.NameToken)
+                or isinstance(binop, tok.PunctuationToken)
+            ):
                 return expression
-            binop_precedence = tok.operator_to_precedence.get(binop.type, tok.comma_precedence + 1)
+            binop_precedence = tok.operator_to_precedence.get(
+                binop.type, tok.comma_precedence + 1
+            )
             if binop_precedence > expression_precedence:
                 return expression
             self.tokenizer.consume()
 
-            next_expression = self.parse_expression(parent_statement, binop_precedence - 1)
+            next_expression = self.parse_expression(
+                parent_statement, binop_precedence - 1
+            )
             expression = ast.BinaryExpression(expression, binop, next_expression)
             if isinstance(next_expression, ast.PlaceholderExpression):
                 return expression
 
-    def parse_non_binary_expression(self, parent_statement: ast.Statement) -> ast.Expression:
+    def parse_non_binary_expression(
+        self, parent_statement: ast.Statement
+    ) -> ast.Expression:
         """Parse a non-binary expression"""
         # We can extend to support prefix operators pretty easily
         # Also function support
@@ -248,9 +302,14 @@ class Parser:
                     if token.type == tok.PunctuationTokenType.LEFT_PAREN:
                         self.tokenizer.consume()
                         # We allow commas here
-                        ret = self.parse_expression(parent_statement, tok.comma_precedence)
+                        ret = self.parse_expression(
+                            parent_statement, tok.comma_precedence
+                        )
                         token2 = self.get_next_standard_token(parent_statement)
-                        if isinstance(token2, tok.PunctuationToken) and token2.type == tok.PunctuationTokenType.RIGHT_PAREN:
+                        if (
+                            isinstance(token2, tok.PunctuationToken)
+                            and token2.type == tok.PunctuationTokenType.RIGHT_PAREN
+                        ):
                             self.tokenizer.consume()
                             ret = ast.ParenExpression(token, ret, token2)
                         else:
@@ -285,6 +344,7 @@ class Parser:
 
 if __name__ == "__main__":
     from pprint import pprint
+
     # Limitations:
     # `b as`
     # `3.4.2`
