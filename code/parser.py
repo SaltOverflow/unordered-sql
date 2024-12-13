@@ -352,7 +352,23 @@ if __name__ == "__main__":
     # `in`
     text = """\
     select a
-    where t or t2.a
+    select b as, c as C
+    select d, e E
+    from schema.table  -- this is table!
+    where i < 3.4.2 and b == 'hello';
+
+    from "table2" select "in" ;
+    from table2 select in   -- comment is not a select statement
+
+    -- now this goes on a new line
+    /* also this */
+
+    from table2 as "t2" select a
+    where i > /*3*/ 4
+    from table t
+    where t.a < 5 or t2.a < 5
+    select b
+    where b < 3
     """
     print(repr(text[0:12]))
     parser = Parser(text, 12)
