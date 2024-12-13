@@ -10,7 +10,7 @@ The last sentence is worth emphasizing, because while Unordered SQL is easier to
 
 ### File structure
 
-`code/` is where the source code is. *It's written in Python because it's an easy language to prototype in, when performance isn't much of a concern. I'll probably take the learnings and apply them to a real-world project at some point.*
+`code/` holds the source code of the project
 
 `commentary/` adds some historical context to the thought process behind some of the decisions made in the code.
 

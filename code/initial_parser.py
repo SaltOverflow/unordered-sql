@@ -191,6 +191,10 @@ for statement in statements:
     new_text += new_statement_text
     cursor = end_idx
 
+print(new_text)
+print()
+print()
+print("Approach 2:")
 
 #################################
 # Approach 2: Build the AST while iterating through the text

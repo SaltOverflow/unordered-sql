@@ -2,7 +2,7 @@
 
 These are my thoughts and rationale on the codebase as it stands on Dec 12, 2024.
 
-This was originally written for the course project for my CS 842 course at UWaterloo. Hence the programming project proposal in the same folder. Note that what was envisioned in the proposal is different from what was ultimately written, given the limitations of time. You can also read the README for an overview of what Unordered SQL as a specification represents, such as its strengths and weaknesses.
+This was originally written as the course project for my CS 842 course at UWaterloo. Hence the programming project proposal in the same folder. Note that what was envisioned in the proposal is different from what was ultimately written, given the limitations of time. You can also read the README for an overview of what Unordered SQL as a specification represents, such as its strengths and weaknesses.
 
 The idea came about when working at my previous jobs. Namely, the scenarios demonstrated in the README were scenarios that I actually ran up against when writing SQL queries. It was originally about swapping the SELECT and FROM clauses, which would solve the nagging problem of autocomplete. After a few iterations of "can we do EVEN MORE?" it eventually evolved into this format. One could argue that this format is too flexible, and they might be right. At this stage in development however, it is all about prototyping and seeing how it would work / not work.
 
@@ -27,6 +27,8 @@ select statement = {"SELECT", select fields |
 Evidently, SQL statements are more complex than this, but 1. This is a proof-of-concept; 2. The benefits of Unordered SQL over SQL diminish as the queries get bigger and more complex - at that point, writing too many out-of-order clauses will only make things more confusing. In fact, you could argue a similar case for regular SQL: As a SQL script gets more complex, it starts to feel more natural to work with a general-purpose programming language instead.
 
 The code can be run by entering `python code/formatter.py` (or whatever file you want to run) into the command line. This code was developed using Python 3.12 .
+
+I made a video! Check it out here: https://youtu.be/yYmXDXmFFT8
 
 ## Tokenizer and token spec
 
@@ -72,6 +74,6 @@ It's worth noting that there is no type-checking being done here. This might act
 
 The project proposal set up parsing the Unordered SQL language as a relatively simple task. Indeed, if I wrote it like `initial_parser.py` or found a suitable parser, it would not be as complex as it ended up being. With the way I ended up doing it, it was a whole lot more work and changed the milestones entirely (it was more about learning how to write a parser than hacking a prototype together). I don't really regret it though, as I learned about a lot of the complexities of building a language from scratch that I otherwise wouldn't have considered if I had simply used a pre-built solution.
 
-From an engineering perspective, it's a bit of a disappointment, since most of the functionality could be gotten by simply extending `initial_parser.py` or `tokenizer.py` a bit more. The only feature that the parser offers that actually requires parsing an AST is the ability to denote unknown sequences, which could probably be done by leveraging another library. However, I feel like this misses the "research and understanding" portion of the project. From a scientific perspective, I think I learned a lot about the intricacies of developing a programming language and spent time developing my own opinions on programming languages, which will be particularily useful when making decisions in the future.
+From an engineering perspective, it's a bit of a disappointment, since it does feel like most of the functionality could be gotten by leveraging another library. However, I feel like this misses the "research and understanding" portion of the project. From a scientific perspective, I think I learned a lot about the intricacies of developing a programming language and spent time developing my own opinions on programming languages, which will be particularily useful when making decisions in the future.
 
 For the next step, I want to try forking a database client that has autocomplete, and see if I can modify it to work for Unordered SQL. I think it'd be particularily useful to compare my implementation with the way a database client like DBeaver is implemented, especially now that I have a deeper understanding of what needs to be done in order to create such a product.
